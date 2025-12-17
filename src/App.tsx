@@ -382,7 +382,8 @@ interface CalculationBreakdownProps {
 
 const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({ product, stockSource }) => {
   if (!product.calc) return null;
-  const { avgSales, trendFactor, realBurn, safetyDays, strategicBuffer } = product.calc;
+  // REMOVED: unused variables 'avgSales' and 'trendFactor'
+  const { realBurn, safetyDays, strategicBuffer } = product.calc;
   
   const currentStock = product.stock || 0; 
   const demand = Math.ceil(realBurn * safetyDays);
