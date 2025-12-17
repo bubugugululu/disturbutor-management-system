@@ -1323,10 +1323,12 @@ const App: React.FC = () => {
 
   }, [manualStocks]); 
 
-  const handleStockUpdate = (id: string, val: number) => {
+  // CHANGED: Use string type to match input element, then parse internally
+  const handleStockUpdate = (id: string, val: string) => {
+    const parsed = parseInt(val);
     setManualStocks(prev => ({
       ...prev,
-      [id]: val
+      [id]: isNaN(parsed) ? 0 : parsed
     }));
   };
 
@@ -1527,7 +1529,7 @@ const App: React.FC = () => {
                 navigateTo={setCurrentView}
                 orders={orders}
                 onSubmitOrder={handleOrderSubmit}
-                onTrackOrder={setTrackingOrder}
+                onTrackOrder={(order) => setTrackingOrder(order)}
              />
           )}
           
@@ -1644,7 +1646,7 @@ const App: React.FC = () => {
                                      type="number"
                                      className="w-24 border border-slate-300 rounded px-2 py-1 text-right font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                      value={p.stock} // This works because p.stock is derived from manualStocks
-                                     onChange={(e) => handleStockUpdate(p.id, parseInt(e.target.value) || 0)}
+                                     onChange={(e) => handleStockUpdate(p.id, e.target.value)}
                                    />
                                 </div>
                              </td>
@@ -1707,9 +1709,9 @@ const App: React.FC = () => {
                      <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">手动输入新数量</label>
                         <div className="flex items-center gap-2">
-                           <button onClick={() => setTempQty(prev => Math.max(0, parseInt(prev) - 10))} className="p-3 border rounded-lg hover:bg-slate-50 font-bold text-slate-500">-</button>
+                           <button onClick={() => setTempQty(prev => Math.max(0, parseInt(prev.toString()) - 10))} className="p-3 border rounded-lg hover:bg-slate-50 font-bold text-slate-500">-</button>
                            <input type="number" value={tempQty} onChange={(e) => setTempQty(parseInt(e.target.value) || 0)} className="flex-1 p-3 border border-slate-300 rounded-lg text-center font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                           <button onClick={() => setTempQty(prev => parseInt(prev) + 10)} className="p-3 border rounded-lg hover:bg-slate-50 font-bold text-slate-500">+</button>
+                           <button onClick={() => setTempQty(prev => parseInt(prev.toString()) + 10)} className="p-3 border rounded-lg hover:bg-slate-50 font-bold text-slate-500">+</button>
                         </div>
                      </div>
                      <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg text-sm">
