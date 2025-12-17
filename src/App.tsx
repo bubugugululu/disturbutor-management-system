@@ -382,7 +382,6 @@ interface CalculationBreakdownProps {
 
 const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({ product, stockSource }) => {
   if (!product.calc) return null;
-  // REMOVED: unused variables 'avgSales' and 'trendFactor'
   const { realBurn, safetyDays, strategicBuffer } = product.calc;
   
   const currentStock = product.stock || 0; 
@@ -913,14 +912,13 @@ const InventoryView: React.FC<InventoryViewProps> = ({ toggleStockModal }) => (
 interface OrdersViewProps {
   products: Product[];
   cart: Product[]; // Assuming cart holds Product items
-  addToCart: (product: Product, qty: number) => void;
   navigateTo: (view: string) => void;
   orders: Order[];
   onSubmitOrder: (total: number, summary: string) => void;
   onTrackOrder: (order: Order) => void;
 }
 
-const OrdersView: React.FC<OrdersViewProps> = ({ products, cart, addToCart, navigateTo, orders, onSubmitOrder, onTrackOrder }) => {
+const OrdersView: React.FC<OrdersViewProps> = ({ products, cart, navigateTo, orders, onSubmitOrder, onTrackOrder }) => {
   const hasCartItems = cart.length > 0;
   const displayItems = hasCartItems ? cart : products.filter(p => (p.aiSuggestion || 0) > 0);
   
@@ -1325,10 +1323,11 @@ const App: React.FC = () => {
 
   }, [manualStocks]); 
 
-  const handleStockUpdate = (id: string, val: string) => {
+  // CHANGED: Accept number for val to prevent type errors
+  const handleStockUpdate = (id: string, val: number) => {
     setManualStocks(prev => ({
       ...prev,
-      [id]: parseInt(val) || 0
+      [id]: val
     }));
   };
 
@@ -1647,7 +1646,8 @@ const App: React.FC = () => {
                                      type="number"
                                      className="w-24 border border-slate-300 rounded px-2 py-1 text-right font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                      value={p.stock} // This works because p.stock is derived from manualStocks
-                                     onChange={(e) => handleStockUpdate(p.id, e.target.value)}
+                                     // CHANGED: Parse int here to pass number
+                                     onChange={(e) => handleStockUpdate(p.id, parseInt(e.target.value) || 0)}
                                    />
                                 </div>
                              </td>
