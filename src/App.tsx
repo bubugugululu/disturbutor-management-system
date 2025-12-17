@@ -1323,7 +1323,6 @@ const App: React.FC = () => {
 
   }, [manualStocks]); 
 
-  // CHANGED: Accept number for val to prevent type errors
   const handleStockUpdate = (id: string, val: number) => {
     setManualStocks(prev => ({
       ...prev,
@@ -1525,7 +1524,6 @@ const App: React.FC = () => {
              <OrdersView 
                 products={products} 
                 cart={cart} 
-                addToCart={addToCart} 
                 navigateTo={setCurrentView}
                 orders={orders}
                 onSubmitOrder={handleOrderSubmit}
@@ -1646,7 +1644,6 @@ const App: React.FC = () => {
                                      type="number"
                                      className="w-24 border border-slate-300 rounded px-2 py-1 text-right font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                      value={p.stock} // This works because p.stock is derived from manualStocks
-                                     // CHANGED: Parse int here to pass number
                                      onChange={(e) => handleStockUpdate(p.id, parseInt(e.target.value) || 0)}
                                    />
                                 </div>
