@@ -18,7 +18,6 @@ import {
   Wallet,
   PieChart,
   ArrowRightLeft,
-  AlertTriangle,
   FileText,
   Megaphone,
   Clock,
@@ -122,18 +121,6 @@ interface Product {
   aiSuggestion?: number; // Derived
   stockoutDate?: string; // Derived
   qty?: number; // For Cart items
-}
-
-interface InventoryRisk {
-  id: string;
-  name: string;
-  batch: string;
-  expiry: string;
-  qty: number;
-  value: number;
-  issue: string;
-  aiAction: string;
-  actionType: 'transfer' | 'return';
 }
 
 interface KnowledgeBaseItem {
@@ -291,31 +278,6 @@ const RAW_PRODUCTS: Product[] = [
       strategicBuffer: 0,
       formula: 'stable'
     }
-  }
-];
-
-const INVENTORY_RISKS: InventoryRisk[] = [
-  {
-    id: 'INV001',
-    name: '希罗达 (卡培他滨)',
-    batch: 'B202309-A',
-    expiry: '3 个月',
-    qty: 450,
-    value: 135000,
-    issue: '近效期风险',
-    aiAction: '建议调拨至华东仓',
-    actionType: 'transfer'
-  },
-  {
-    id: 'INV002',
-    name: '美罗华 (利妥昔单抗)',
-    batch: 'B202401-C',
-    expiry: '12 个月',
-    qty: 80,
-    value: 240000,
-    issue: '周转率低 (滞销)',
-    aiAction: '建议申请退货或促销',
-    actionType: 'return'
   }
 ];
 
@@ -1331,6 +1293,7 @@ const App: React.FC = () => {
           
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 mt-6">核心业务 (Core)</div>
           <NavItem id="replenish" label="智能补货 (AI)" icon={Activity} />
+          {/* Inventory Health removed */}
           <NavItem id="orders" label="订单中心" icon={Truck} />
           <NavItem id="finance" label="财务与返利" icon={Wallet} />
           
@@ -1364,7 +1327,6 @@ const App: React.FC = () => {
              <h2 className="text-lg font-bold text-slate-700 hidden sm:block">
                {currentView === 'home' ? 'CIP 经销商门户' : 
                 currentView === 'replenish' ? 'SmartConnect 智能补货' :
-                currentView === 'inventory' ? '库存健康监控' :
                 currentView === 'orders' ? '订单管理中心' : '罗氏 CIP'}
              </h2>
              <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
@@ -1434,15 +1396,6 @@ const App: React.FC = () => {
               navigateTo={setCurrentView}
               toggleStockModal={() => setIsStockModalOpen(true)}
             />
-          )}
-          
-          {currentView === 'inventory' && (
-            // REMOVED InventoryView since the user requested to delete it earlier, 
-            // but kept the logic. If it needs to be shown, uncomment:
-             <div className="text-center py-20 text-slate-500">
-                <p>Inventory Health Module Moved to Smart Replenish Center</p>
-                <button onClick={() => setCurrentView('replenish')} className="text-blue-600 underline mt-2">Go to Replenish Center</button>
-             </div>
           )}
 
           {currentView === 'orders' && (
