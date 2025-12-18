@@ -817,100 +817,6 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
   );
 };
 
-// --- Sub-View: Inventory Health ---
-interface InventoryViewProps {
-  toggleStockModal: () => void;
-}
-
-// NOTE: Although the user removed this view from the sidebar, 
-// I'm keeping the component definition in case they want to re-enable it or use it elsewhere.
-// It is currently only accessible via direct state manipulation or re-adding the nav item.
-const InventoryView: React.FC<InventoryViewProps> = ({ toggleStockModal }) => (
-  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">库存健康监控</h1>
-        <p className="text-slate-500">AI 识别出 {INVENTORY_RISKS.length} 个具有滞销或近效期风险的产品批次。</p>
-      </div>
-      <button 
-           onClick={toggleStockModal}
-           className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-slate-50 hover:text-blue-700 transition"
-         >
-           <Clipboard className="h-4 w-4" />
-           填报库存
-           <span className="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded ml-1">Manual Input</span>
-      </button>
-    </div>
-
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="text-sm text-slate-500 mb-1">库存总价值</div>
-        <div className="text-2xl font-bold text-slate-900">¥ 4,250,000</div>
-      </div>
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="text-sm text-slate-500 mb-1">风险库存占比</div>
-        <div className="text-2xl font-bold text-amber-500">8.5%</div>
-        <div className="text-xs text-slate-400">需关注</div>
-      </div>
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="text-sm text-slate-500 mb-1">预期报损节省</div>
-        <div className="text-2xl font-bold text-green-600">¥ 125,000</div>
-        <div className="text-xs text-slate-400">如执行 AI 建议</div>
-      </div>
-    </div>
-
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="p-6 border-b border-slate-100 bg-amber-50/50 flex justify-between items-center">
-        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-500" />
-          待处理风险清单
-        </h2>
-      </div>
-      <table className="w-full text-left text-sm text-slate-600">
-        <thead className="bg-slate-50 text-slate-700 uppercase font-bold text-xs">
-          <tr>
-            <th className="px-6 py-4">产品信息</th>
-            <th className="px-6 py-4">风险类型</th>
-            <th className="px-6 py-4">批号/效期</th>
-            <th className="px-6 py-4">AI 优化建议</th>
-            <th className="px-6 py-4 text-right">操作</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {INVENTORY_RISKS.map((item) => (
-            <tr key={item.id} className="hover:bg-slate-50">
-              <td className="px-6 py-4">
-                <div className="font-bold text-slate-900">{item.name}</div>
-                <div className="text-xs text-slate-400">库存: {item.qty} | 价值: ¥{(item.value/10000).toFixed(1)}万</div>
-              </td>
-              <td className="px-6 py-4">
-                 <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700">
-                   {item.issue}
-                 </span>
-              </td>
-              <td className="px-6 py-4">
-                <div className="font-mono text-slate-600">{item.batch}</div>
-                <div className="text-xs text-red-500 font-bold">剩 {item.expiry}</div>
-              </td>
-              <td className="px-6 py-4">
-                 <div className="flex items-center gap-2 text-slate-800 font-medium">
-                    <ArrowRightLeft className="h-4 w-4 text-blue-500" />
-                    {item.aiAction}
-                 </div>
-              </td>
-              <td className="px-6 py-4 text-right">
-                <button className="px-4 py-2 bg-white border border-slate-300 text-slate-600 font-semibold rounded-lg hover:bg-slate-50 hover:text-blue-700 transition">
-                  执行建议
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
-
 // --- Sub-View: Orders Center ---
 interface OrdersViewProps {
   products: Product[];
@@ -1543,7 +1449,6 @@ const App: React.FC = () => {
              <OrdersView 
                 products={products} 
                 cart={cart} 
-                // Removed addToCart prop here
                 navigateTo={setCurrentView}
                 orders={orders}
                 onSubmitOrder={handleOrderSubmit}
@@ -1664,7 +1569,6 @@ const App: React.FC = () => {
                                      type="number"
                                      className="w-24 border border-slate-300 rounded px-2 py-1 text-right font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                      value={p.stock} // This works because p.stock is derived from manualStocks
-                                     // CHANGED: Parse int here to pass number
                                      onChange={(e) => handleStockUpdate(p.id, parseInt(e.target.value) || 0)}
                                    />
                                 </div>
