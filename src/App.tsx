@@ -16,7 +16,7 @@ import {
   Truck,
   Wallet,
   PieChart,
-  ArrowRightLeft, // Fixed: Added missing import
+  ArrowRightLeft, 
   FileText,
   Megaphone,
   Clock,
@@ -122,8 +122,6 @@ interface Product {
   stockoutDate?: string; 
   qty?: number; 
 }
-
-// Removed InventoryRisk interface as it is no longer used
 
 interface KnowledgeBaseItem {
   keywords: string[];
@@ -802,11 +800,6 @@ interface HomeViewProps {
 const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
   const creditPercent = (CIP_STATS.creditUsed / CIP_STATS.creditLimit) * 100;
   
-  const displayInsights = INSIGHTS.map(insight => ({
-     ...insight,
-     action: insight.actionKey === 'trend_modal' ? openTrendModal : undefined
-  }));
-
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
       
@@ -875,30 +868,6 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
             前往订单中心
           </button>
         </div>
-      </div>
-
-      {/* Insight Cards (Updated to be Clickable) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {displayInsights.map((insight) => (
-          <div 
-            key={insight.id} 
-            onClick={insight.action}
-            className={`bg-white p-6 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${insight.color === 'red' ? 'border-red-500' : 'border-blue-500'}`}
-          >
-            <div className="flex items-start gap-4">
-              <div className={`p-3 rounded-full ${insight.color === 'red' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
-                <insight.icon className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800 text-lg mb-1 flex items-center gap-2">
-                    {insight.title}
-                    {insight.action && <ChevronRight className="h-4 w-4 text-slate-400" />}
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed">{insight.description}</p>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
