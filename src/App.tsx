@@ -37,8 +37,7 @@ import {
   Loader,
   Send,          
   Bot,           
-  Sparkles,      
-  Copy
+  Sparkles
 } from 'lucide-react';
 
 // --- 1. Type Definitions ---
@@ -551,7 +550,7 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
       setIsTyping(false);
     }, 1000);
   };
-  
+
   if (!isOpen) return (
     <button 
       onClick={toggle}
@@ -831,6 +830,8 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Work Area */}
         <div className="md:col-span-2 space-y-6">
+          {/* AI Critical Alert - REMOVED on home page as requested */}
+          
           {/* Recent Orders */}
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
