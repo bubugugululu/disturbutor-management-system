@@ -35,15 +35,15 @@ import {
   MapPin,
   PackageCheck,
   Loader,
-  MessageSquare, // For Co-pilot
-  Send,          // For Co-pilot
-  Bot,           // For Co-pilot
-  Sparkles,      // For Marketing AI
-  Copy,          // Copy text
-  Image as ImageIcon // Image placeholder
+  MessageSquare, 
+  Send,          
+  Bot,           
+  Sparkles,      
+  Copy,          
+  Image as ImageIcon
 } from 'lucide-react';
 
-// --- Type Definitions ---
+// --- 1. Type Definitions ---
 
 interface UserProfile {
   name: string;
@@ -94,6 +94,7 @@ interface Insight {
   description: string;
   icon: React.ElementType;
   color: 'red' | 'blue';
+  actionKey?: string; // Used to identify actionable insights
 }
 
 interface CalculationDetails {
@@ -110,17 +111,17 @@ interface Product {
   name: string;
   category: string;
   initialStock: number;
-  stock?: number; // Derived
-  stockSource?: 'ddi' | 'manual'; // Derived
+  stock?: number; 
+  stockSource?: 'ddi' | 'manual'; 
   burnRateDisplay: string;
   reason: string;
   confidence: number;
   status: 'Critical' | 'Stable' | 'Low';
   price: number;
   calc: CalculationDetails;
-  aiSuggestion?: number; // Derived
-  stockoutDate?: string; // Derived
-  qty?: number; // For Cart items
+  aiSuggestion?: number; 
+  stockoutDate?: string; 
+  qty?: number; 
 }
 
 interface KnowledgeBaseItem {
@@ -138,11 +139,18 @@ interface MarketingTemplate {
 interface Message {
   type: 'bot' | 'user';
   text?: string;
-  isMarketingSelector?: boolean;
+  options?: { label: string; value: string; action: string }[];
   marketingContent?: string;
 }
 
-// --- Mock Data ---
+interface RegionData {
+  name: string;
+  trend: number[];
+  prediction: string;
+  riskLevel: 'High' | 'Medium' | 'Low';
+}
+
+// --- 2. Mock Data (Defined BEFORE Components to avoid ReferenceError) ---
 
 const USER_PROFILE: UserProfile = {
   name: "陈先生",
@@ -162,6 +170,8 @@ const CIP_STATS: CipStats = {
 };
 
 const ANNOUNCEMENTS: Announcement[] = [
+  // Added new announcement as requested
+  { id: 4, title: '四川医院准入完成，现开放经销商合作', date: '10-20', tag: '业务', important: true },
   { id: 1, title: '关于 Q4 罗氏芬 (Rocephin) 供货价格调整通知', date: '10-15', tag: '政策', important: true },
   { id: 2, title: '2023年流感季药品储备指导意见书', date: '10-12', tag: '运营', important: false },
   { id: 3, title: 'CIP 系统维护通知：本周六凌晨 02:00-04:00', date: '10-10', tag: '系统', important: false }
@@ -214,10 +224,11 @@ const INSIGHTS: Insight[] = [
   {
     id: 2,
     type: 'opportunity',
-    title: '接近 Q4 返利目标',
-    description: '您距离二级返利（额外 3% 折扣）仅差 450 单位。',
+    title: '药品区域趋势预测',
+    description: '基于历史数据模型预测，流感季将在未来 2 周内达到高峰，建议提前储备抗病毒类药物。',
     icon: TrendingUp,
-    color: 'blue'
+    color: 'blue',
+    actionKey: 'trend_modal'
   }
 ];
 
@@ -281,21 +292,47 @@ const RAW_PRODUCTS: Product[] = [
   }
 ];
 
+const REGIONAL_TRENDS: Record<string, RegionData> = {
+  'Sichuan': {
+    name: '四川 (Sichuan)',
+    trend: [12, 15, 18, 25, 30, 45, 60, 85, 95, 90, 80, 70, 60, 50, 45],
+    prediction: '预计未来 2 周内流感活动达到峰值，达菲需求将激增 200%。',
+    riskLevel: 'High'
+  },
+  'Beijing': {
+    name: '北京 (Beijing)',
+    trend: [10, 11, 10, 12, 13, 15, 14, 16, 18, 17, 16, 15, 14, 13, 12],
+    prediction: '流感活动处于低水平，需求平稳。',
+    riskLevel: 'Low'
+  },
+  'Guangdong': {
+    name: '广东 (Guangdong)',
+    trend: [20, 22, 25, 28, 30, 35, 38, 40, 42, 45, 48, 50, 52, 55, 58],
+    prediction: '流感活动呈缓慢上升趋势，建议保持常规库存并适当增加缓冲。',
+    riskLevel: 'Medium'
+  }
+};
+
+const KNOWLEDGE_BASE_DATA: Record<string, { detail: string, gsp: string }> = {
+  '达菲': {
+    detail: "**达菲 (Tamiflu) 产品详情：**\n\n* **通用名**：磷酸奥司他韦胶囊\n* **规格**：75mg x 10粒/盒\n* **适应症**：用于成人和1岁及1岁以上儿童的甲型和乙型流感治疗；用于成人和13岁及13岁以上青少年的甲型和乙型流感预防。\n* **有效期**：60个月",
+    gsp: "**达菲 GSP 存储要求：**\n需密封，在阴凉处（不超过 20℃）保存。请注意防潮。"
+  },
+  '罗氏芬': {
+    detail: "**罗氏芬 (Rocephin) 产品详情：**\n\n* **通用名**：注射用头孢曲松钠\n* **适应症**：用于敏感致病菌所致的下呼吸道感染、尿路、胆道感染等。\n* **有效期**：36个月",
+    gsp: "**罗氏芬 GSP 存储要求：**\n遮光，密闭，在阴凉干燥处保存。"
+  },
+  '安维汀': {
+    detail: "**安维汀 (Avastin) 产品详情：**\n\n* **通用名**：贝伐珠单抗注射液\n* **适应症**：转移性结直肠癌、非小细胞肺癌等。\n* **需冷链运输**。",
+    gsp: "**安维汀 GSP 存储要求：**\n避光，2-8℃ 冰箱冷藏，不可冷冻。运输过程中需全程冷链监控。"
+  }
+};
+
 const KNOWLEDGE_BASE: KnowledgeBaseItem[] = [
   {
-    keywords: ['GSP', '存储', '温度', '要求'],
-    answer: "根据最新版 GSP 附录及罗氏药品说明书：\n1. **达菲 (Tamiflu)**：需密封，在阴凉处（不超过 20℃）保存。\n2. **罗氏芬 (Rocephin)**：遮光，密闭，在阴凉干燥处保存。\n\n⚠️ 温馨提示：近期四川湿度较大，请重点关注库房湿度控制在 45%-75%。",
-    followUp: "需要为您生成关于‘达菲存储规范’的药店端培训海报吗？"
-  },
-  {
-    keywords: ['有效期', '过期', '效期'],
-    answer: "**达菲**的有效期通常为 **5年**，**罗氏芬**的有效期为 **3年**。\n\n系统监测到您库中批号 B202309 的希罗达仅剩 3 个月效期，建议优先执行出库。",
-    followUp: "需要生成临期药品促销方案吗？"
-  },
-  {
-    keywords: ['推广', '文案', '营销', '朋友圈'],
-    isMarketingTrigger: true,
-    answer: "收到！正在调取罗氏市场部最新素材库...",
+    keywords: ['返利', '政策', '折扣', '优惠', 'rebate', 'q4', 'Q4'],
+    answer: "您目前的 Q4 返利达成情况如下：\n\n**二级返利（额外 3% 折扣）：仅差 450 单位。**\n\n建议您结合智能补货清单进行凑单，以锁定此优惠。",
+    followUp: "需要为您生成详细的返利测算表吗？"
   }
 ];
 
@@ -314,7 +351,36 @@ const MARKETING_TEMPLATES: Record<string, MarketingTemplate> = {
   }
 };
 
-// --- Components ---
+// --- 3. Helper Components ---
+
+const TrendLineChart: React.FC<{ data: number[], color: string }> = ({ data, color }) => (
+  <div className="w-full h-48 bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden flex items-end px-4 pb-4 gap-1">
+    {/* Grid */}
+    <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none opacity-20">
+      <div className="w-full h-px bg-slate-400"></div>
+      <div className="w-full h-px bg-slate-400"></div>
+      <div className="w-full h-px bg-slate-400"></div>
+    </div>
+    
+    {/* Bars */}
+    {data.map((val, i) => (
+      <div key={i} className="flex-1 relative group flex items-end h-full">
+         <div 
+           style={{ height: `${val}%` }} 
+           className={`w-full rounded-t-sm transition-all duration-500 ${color === 'red' ? 'bg-red-500' : color === 'orange' ? 'bg-orange-500' : 'bg-green-500'} opacity-80`}
+         ></div>
+         {/* Tooltip */}
+         <div className="hidden group-hover:block absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-10">
+            Day {i+1}: {val}
+         </div>
+      </div>
+    ))}
+    
+    {/* X Axis Label */}
+    <div className="absolute bottom-1 left-4 text-[10px] text-slate-400">Today</div>
+    <div className="absolute bottom-1 right-4 text-[10px] text-slate-400">+30 Days</div>
+  </div>
+);
 
 const SimpleLineChart: React.FC = () => (
   <div className="w-full h-40 bg-slate-50 rounded-lg border border-slate-200 relative overflow-hidden flex items-end px-4 pb-4 gap-2">
@@ -366,7 +432,7 @@ const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({ product, st
               <div className="font-bold text-slate-900">{currentStock}</div>
            </div>
            <div className="flex-1 bg-white border border-slate-200 p-2 rounded">
-              <div className="text-slate-500 text-xs">真实消耗 (Burn Rate)</div>
+              <div className="text-slate-500 text-xs">预计消耗 (Est. Burn Rate)</div>
               <div className="font-bold text-red-600">{realBurn}/天</div>
            </div>
         </div>
@@ -404,7 +470,8 @@ const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({ product, st
   );
 };
 
-// --- Co-Pilot Component ---
+// --- 4. Feature Components ---
+
 interface CoPilotProps {
   isOpen: boolean;
   toggle: () => void;
@@ -412,10 +479,15 @@ interface CoPilotProps {
 
 const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { type: 'bot', text: '您好！我是罗氏智能助手 (Roche Co-pilot)。\n我可以为您解答 **药品合规(GSP)** 问题，或为您生成 **营销推广文案**。\n\n请问有什么可以帮您？' }
+    { type: 'bot', text: '您好！我是罗氏智能助手 (Roche Co-pilot)。\n\n请问有什么可以帮您？', options: [
+            { label: '达菲 (Tamiflu)', value: '达菲', action: 'select_product' },
+            { label: '罗氏芬 (Rocephin)', value: '罗氏芬', action: 'select_product' },
+            { label: '安维汀 (Avastin)', value: '安维汀', action: 'select_product' },
+          ]}
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -426,6 +498,57 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
     scrollToBottom();
   }, [messages, isOpen]);
 
+  const handleOptionClick = (option: { label: string; value: string; action: string }) => {
+    setMessages(prev => [...prev, { type: 'user', text: option.label }]);
+    setIsTyping(true);
+
+    setTimeout(() => {
+      // Handle Product Selection
+      if (option.action === 'select_product') {
+        setSelectedProduct(option.value);
+        setMessages(prev => [...prev, { 
+          type: 'bot', 
+          text: `已选择 **${option.value}**。请问您想了解什么？`,
+          options: [
+            { label: '📦 产品详情', value: 'detail', action: 'ask_detail' },
+            { label: '🛡️ GSP合规要求', value: 'gsp', action: 'ask_gsp' },
+            { label: '↩️ 重选产品', value: 'reset', action: 'reset' }
+          ]
+        }]);
+      } 
+      // Handle Specific Question (Detail / GSP)
+      else if (option.action === 'ask_detail' || option.action === 'ask_gsp') {
+         const productKey = selectedProduct || '达菲';
+         const data = KNOWLEDGE_BASE_DATA[productKey];
+         const answer = option.value === 'detail' ? data.detail : data.gsp;
+
+         setMessages(prev => [...prev, { 
+           type: 'bot', 
+           text: answer,
+           options: [
+             { label: '↩️ 返回上一级', value: productKey, action: 'select_product' },
+             { label: '🏠 返回主菜单', value: 'main', action: 'reset' }
+           ]
+         }]);
+      }
+      // Reset
+      else if (option.action === 'reset') {
+         setSelectedProduct(null);
+         setMessages(prev => [...prev, {
+            type: 'bot',
+            text: '好的，请选择您关注的产品：',
+            options: [
+              { label: '达菲 (Tamiflu)', value: '达菲', action: 'select_product' },
+              { label: '罗氏芬 (Rocephin)', value: '罗氏芬', action: 'select_product' },
+              { label: '安维汀 (Avastin)', value: '安维汀', action: 'select_product' },
+            ]
+         }]);
+      }
+
+      setIsTyping(false);
+    }, 600);
+  };
+
   const handleSend = () => {
     if (!input.trim()) return;
     
@@ -434,29 +557,21 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI processing
     setTimeout(() => {
-      let response = "抱歉，我暂时无法回答这个问题。您可以尝试询问“GSP要求”或“生成达菲文案”。";
+      let response = "抱歉，我暂时无法回答这个问题。建议使用上方按钮选择产品进行查询，或询问‘返利’。";
       let marketingOptions = false;
 
-      // 1. Search Knowledge Base
-      const kbMatch = KNOWLEDGE_BASE.find(item => item.keywords.some(k => userText.includes(k)));
+      // Search Knowledge Base
+      const kbMatch = KNOWLEDGE_BASE.find(item => item.keywords.some(k => userText.toLowerCase().includes(k.toLowerCase())));
       
       if (kbMatch) {
         response = kbMatch.answer;
         if (kbMatch.isMarketingTrigger || userText.includes('文案') || userText.includes('推广')) {
-           // Prepare for Marketing Flow
            marketingOptions = true;
         } else if (kbMatch.followUp) {
-           // Append follow up suggestion
            response += `\n\n💡 ${kbMatch.followUp}`;
         }
       } 
-      // Fallback Marketing Trigger
-      else if (userText.includes('文案') || userText.includes('推广') || userText.includes('海报')) {
-         marketingOptions = true;
-         response = "没问题！检测到您想推广热销产品 **达菲 (Tamiflu)**。";
-      }
 
       setMessages(prev => [...prev, { type: 'bot', text: response }]);
       
@@ -471,12 +586,12 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
       setIsTyping(false);
     }, 1000);
   };
-
+  
+  // Marketing Select Logic (kept for backward compatibility if user triggers via text)
   const handleMarketingSelect = (type: string) => {
     const template = MARKETING_TEMPLATES[type];
     setMessages(prev => [...prev, { type: 'user', text: `选择：${template.title}` }]);
     setIsTyping(true);
-    
     setTimeout(() => {
        setMessages(prev => [...prev, { 
          type: 'bot', 
@@ -486,6 +601,7 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
        setIsTyping(false);
     }, 1200);
   };
+
 
   if (!isOpen) return (
     <button 
@@ -499,7 +615,6 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
 
   return (
     <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl z-50 flex flex-col border border-slate-200 animate-in slide-in-from-bottom-10 duration-300 font-sans">
-      {/* Header */}
       <div className="bg-blue-700 p-4 rounded-t-2xl flex justify-between items-center text-white">
         <div className="flex items-center gap-2">
           <div className="bg-white/20 p-1.5 rounded-lg"><Bot className="h-5 w-5" /></div>
@@ -513,10 +628,9 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
         <button onClick={toggle} className="hover:bg-blue-600 p-1 rounded transition"><X className="h-5 w-5" /></button>
       </div>
 
-      {/* Chat Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={idx} className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
             <div className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm ${
               msg.type === 'user' 
                 ? 'bg-blue-600 text-white rounded-br-none' 
@@ -531,23 +645,11 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
                     <div className="bg-green-500 text-white p-1 rounded"><MessageSquare className="h-3 w-3" /></div>
                     <span className="text-xs font-bold text-blue-800">朋友圈文案</span>
                   </button>
-                  <button onClick={() => handleMarketingSelect('poster')} className="flex items-center gap-2 p-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition text-left">
-                    <div className="bg-purple-500 text-white p-1 rounded"><ImageIcon className="h-3 w-3" /></div>
-                    <span className="text-xs font-bold text-blue-800">专业海报设计</span>
-                  </button>
-                  <button onClick={() => handleMarketingSelect('sms')} className="flex items-center gap-2 p-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition text-left">
-                    <div className="bg-orange-500 text-white p-1 rounded"><Zap className="h-3 w-3" /></div>
-                    <span className="text-xs font-bold text-blue-800">促销短信</span>
-                  </button>
                 </div>
               )}
-
-              {/* Generated Content UI */}
-              {msg.marketingContent && (
+               {/* Generated Content UI */}
+               {msg.marketingContent && (
                 <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 relative group">
-                   <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                     <Sparkles className="h-3 w-3 text-amber-500" /> AI 生成内容 Preview
-                   </div>
                    <div className="text-slate-800 font-medium whitespace-pre-wrap bg-white p-2 rounded border border-slate-100 text-xs">
                      {msg.marketingContent}
                    </div>
@@ -557,6 +659,20 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
                 </div>
               )}
             </div>
+
+            {msg.options && (
+                <div className="mt-2 flex flex-wrap gap-2 max-w-[90%]">
+                    {msg.options.map((opt, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => handleOptionClick(opt)}
+                            className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full hover:bg-blue-100 transition shadow-sm font-medium"
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
           </div>
         ))}
         {isTyping && (
@@ -569,12 +685,11 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className="p-3 bg-white border-t border-slate-100">
         <div className="flex items-center gap-2 bg-slate-100 rounded-full px-4 py-2 border border-slate-200 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition">
           <input 
             className="flex-1 bg-transparent outline-none text-sm text-slate-700 placeholder:text-slate-400"
-            placeholder="输入问题 (如: GSP要求, 生成文案)..."
+            placeholder="输入问题..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
@@ -587,22 +702,105 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
             <Send className="h-4 w-4" />
           </button>
         </div>
-        <div className="text-[10px] text-center text-slate-400 mt-2">
-          AI 内容仅供参考，请以官方说明书为准
-        </div>
       </div>
     </div>
   );
 };
 
+// --- Regional Trend Modal ---
+interface RegionalTrendModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const RegionalTrendModal: React.FC<RegionalTrendModalProps> = ({ isOpen, onClose }) => {
+  const [selectedRegion, setSelectedRegion] = useState('Sichuan');
+  const regionData = REGIONAL_TRENDS[selectedRegion];
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4 animate-in fade-in duration-200">
+       <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+          {/* Header */}
+          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+             <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                   <Activity className="h-5 w-5" />
+                </div>
+                <div>
+                   <h3 className="text-lg font-bold text-slate-900">药品区域趋势预测</h3>
+                   <p className="text-xs text-slate-500">基于历史销售数据预测流感趋势 (Flu Prediction based on Historical Data)</p>
+                </div>
+             </div>
+             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition"><X className="h-5 w-5 text-slate-400" /></button>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 overflow-y-auto">
+             {/* Region Selector */}
+             <div className="flex gap-2 mb-6">
+                {Object.keys(REGIONAL_TRENDS).map(key => (
+                   <button
+                     key={key}
+                     onClick={() => setSelectedRegion(key)}
+                     className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
+                        selectedRegion === key 
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                     }`}
+                   >
+                      {REGIONAL_TRENDS[key].name}
+                   </button>
+                ))}
+             </div>
+
+             {/* Chart Section */}
+             <div className="mb-6">
+                <div className="flex justify-between items-end mb-2">
+                   <h4 className="font-bold text-slate-800 text-sm">未来 30 天需求预测 (Demand Forecast)</h4>
+                   <div className="flex items-center gap-2 text-xs">
+                      <span className={`px-2 py-0.5 rounded font-bold ${
+                         regionData.riskLevel === 'High' ? 'bg-red-100 text-red-600' :
+                         regionData.riskLevel === 'Medium' ? 'bg-orange-100 text-orange-600' :
+                         'bg-green-100 text-green-600'
+                      }`}>
+                         风险等级: {regionData.riskLevel}
+                      </span>
+                   </div>
+                </div>
+                <TrendLineChart 
+                  data={regionData.trend} 
+                  color={regionData.riskLevel === 'High' ? 'red' : regionData.riskLevel === 'Medium' ? 'orange' : 'green'} 
+                />
+             </div>
+
+             {/* Insight Text */}
+             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-4">
+                <Sparkles className="h-6 w-6 text-blue-600 shrink-0 mt-1" />
+                <div>
+                   <h5 className="font-bold text-blue-900 text-sm mb-1">AI 策略建议</h5>
+                   <p className="text-sm text-blue-800 leading-relaxed">
+                      {regionData.prediction}
+                   </p>
+                </div>
+             </div>
+          </div>
+       </div>
+    </div>
+  );
+};
+
+
 // --- View Component: Home ---
 interface HomeViewProps {
   navigateTo: (view: string) => void;
+  openTrendModal: () => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
+const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
   const creditPercent = (CIP_STATS.creditUsed / CIP_STATS.creditLimit) * 100;
-
+  
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
       
@@ -673,6 +871,8 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
         </div>
       </div>
 
+      {/* Insight Cards section REMOVED */}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Work Area */}
         <div className="md:col-span-2 space-y-6">
@@ -705,6 +905,7 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
              </div>
           </div>
 
+          {/* Recent Orders */}
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                <h3 className="font-bold text-slate-800 text-sm">最近订单 (Recent Orders)</h3>
@@ -779,164 +980,6 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
   );
 };
 
-// --- Sub-View: Orders Center ---
-interface OrdersViewProps {
-  products: Product[];
-  cart: Product[]; // Assuming cart holds Product items
-  navigateTo: (view: string) => void;
-  orders: Order[];
-  onSubmitOrder: (total: number, summary: string) => void;
-  onTrackOrder: (order: Order) => void;
-}
-
-const OrdersView: React.FC<OrdersViewProps> = ({ products, cart, navigateTo, orders, onSubmitOrder, onTrackOrder }) => {
-  const hasCartItems = cart.length > 0;
-  const displayItems = hasCartItems ? cart : products.filter(p => (p.aiSuggestion || 0) > 0);
-  
-  const draftTotalValue = displayItems.reduce((sum, p) => {
-     const qty = hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0);
-     return sum + (p.price * qty);
-  }, 0);
-  
-  const draftTotalItems = displayItems.reduce((sum, p) => {
-     const qty = hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0);
-     return sum + qty;
-  }, 0);
-
-  const draftItemNames = displayItems.map(p => `${p.name.split(' ')[0]} x${hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0)}`).join(', ');
-
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">订单中心 (Order Center)</h1>
-        <p className="text-slate-500">集中管理采购订单、审核 AI 建议草稿并生成正式合同。</p>
-      </div>
-
-      <div className="flex gap-6 border-b border-slate-200 mb-6">
-        <button className="pb-3 border-b-2 border-blue-700 text-blue-700 font-bold text-sm">
-          全部订单 ({orders.length + (displayItems.length > 0 ? 1 : 0)})
-        </button>
-        <button className="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-medium text-sm flex items-center gap-2">
-          待确认草稿 (Drafts)
-          {displayItems.length > 0 && <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">1</span>}
-        </button>
-        <button className="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-medium text-sm">处理中</button>
-        <button className="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-medium text-sm">已完成</button>
-      </div>
-
-      <div className="space-y-4">
-        {displayItems.length > 0 && (
-          <div className="bg-gradient-to-r from-amber-50 to-white border border-amber-200 rounded-xl p-6 shadow-sm relative overflow-hidden group">
-            <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 relative z-10">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-amber-100 text-amber-600 rounded-xl mt-1 shadow-sm">
-                  <FileInput className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-lg font-bold text-slate-900">
-                        {hasCartItems ? '智能补货预采购单' : 'AI 补货建议草稿'}
-                    </h3>
-                    <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded border border-amber-200">待提交 Pending</span>
-                    <span className="text-xs text-slate-400 font-mono">ID: DRAFT-NEW</span>
-                  </div>
-                  <div className="text-sm text-slate-600 mt-2 max-w-lg leading-relaxed">
-                    {hasCartItems 
-                      ? '您已在智能补货中心确认了采购意向。请核对下方商品及金额，提交生成正式订单。'
-                      : '系统根据当前库存风险自动生成的建议清单。您尚未确认，建议尽快处理以锁定库存。'
-                    }
-                  </div>
-                </div>
-              </div>
-              <div className="text-right bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
-                <div className="text-xs text-slate-500 mb-1">预计订单总额</div>
-                <div className="text-2xl font-bold text-amber-600">¥ {draftTotalValue.toLocaleString()}</div>
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-5 relative z-10">
-              <div className="flex justify-between items-center mb-3">
-                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">商品清单 ({draftTotalItems} 单位)</div>
-                 <button onClick={() => navigateTo('replenish')} className="text-xs text-blue-600 hover:underline">修改清单</button>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {displayItems.map(p => {
-                   const qty = hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0);
-                   return (
-                    <div key={p.id} className="text-sm bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md text-slate-700 flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${p.status === 'Critical' ? 'bg-red-500' : 'bg-blue-500'}`}></span>
-                        {p.name.split(' ')[0]} 
-                        <span className="font-bold text-slate-900 bg-white px-1.5 rounded border border-slate-200 ml-1">x{qty}</span>
-                    </div>
-                   );
-                })}
-              </div>
-            </div>
-
-            <div className="flex gap-3 relative z-10 justify-end">
-               <button className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition">取消 / 暂存</button>
-               <button 
-                 onClick={() => onSubmitOrder(draftTotalValue, draftItemNames)}
-                 className="px-6 py-2.5 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 transition shadow-lg shadow-blue-200 flex items-center gap-2"
-               >
-                 <CheckSquare className="h-4 w-4" />
-                 确认并提交正式订单 (Submit)
-               </button>
-            </div>
-          </div>
-        )}
-
-        {orders.map((order) => (
-          <div key={order.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl border border-slate-100 ${
-                    order.status === '处理中' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
-                }`}>
-                  {order.status === '处理中' ? <Loader className="h-6 w-6 animate-spin" /> : <FileText className="h-6 w-6" />}
-                </div>
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-base font-bold text-slate-900">常规采购订单 (PO)</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded font-bold ${
-                      order.status === '运输中' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 
-                      order.status === '处理中' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 
-                      order.status === '已签收' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-400 mt-1 font-mono">
-                    ID: {order.id} <span className="mx-1">•</span> {order.date}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold text-slate-900">¥ {order.amount.toLocaleString()}</div>
-                <div className="flex items-center justify-end gap-2 mt-2">
-                    <button 
-                      onClick={() => onTrackOrder(order)}
-                      className="text-xs bg-slate-100 hover:bg-blue-50 hover:text-blue-700 px-2 py-1 rounded transition flex items-center gap-1 font-medium"
-                    >
-                        <MapPin className="w-3 h-3" /> 追踪物流
-                    </button>
-                    <button className="text-xs text-slate-500 font-medium hover:underline">详情</button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between items-center">
-               <div className="text-sm text-slate-600 truncate max-w-lg">
-                 <span className="font-bold text-slate-700 mr-2">包含:</span> {order.items}
-               </div>
-               <button className="text-sm text-slate-500 hover:text-blue-700 font-medium">再次购买</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // --- Sub-View: Replenishment ---
 interface SmartReplenishViewProps {
   cart: Product[];
@@ -947,7 +990,8 @@ interface SmartReplenishViewProps {
   cartTotal: number;
   products: Product[];
   navigateTo: (view: string) => void;
-  toggleStockModal: () => void; // Added here
+  toggleStockModal: () => void; 
+  openTrendModal: () => void; // Added prop
 }
 
 const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({ 
@@ -959,9 +1003,16 @@ const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({
   cartTotal,
   products,
   navigateTo,
-  toggleStockModal // Destructure
+  toggleStockModal,
+  openTrendModal // Destructure
 }) => {
   const rebateProgress = Math.min((cartTotal / 100000) * 100, 100);
+  
+  // Re-map insights for this view too
+  const displayInsights = INSIGHTS.map(insight => ({
+     ...insight,
+     action: insight.actionKey === 'trend_modal' ? openTrendModal : undefined
+  }));
 
   return (
     <div className="animate-in fade-in slide-in-from-right-4 duration-500 pb-20 relative">
@@ -981,14 +1032,21 @@ const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {INSIGHTS.map((insight) => (
-          <div key={insight.id} className={`bg-white p-6 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${insight.color === 'red' ? 'border-red-500' : 'border-blue-500'}`}>
+        {displayInsights.map((insight) => (
+          <div 
+            key={insight.id} 
+            onClick={insight.action}
+            className={`bg-white p-6 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${insight.color === 'red' ? 'border-red-500' : 'border-blue-500'}`}
+          >
             <div className="flex items-start gap-4">
               <div className={`p-3 rounded-full ${insight.color === 'red' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
                 <insight.icon className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800 text-lg mb-1">{insight.title}</h3>
+                <h3 className="font-bold text-slate-800 text-lg mb-1 flex items-center gap-2">
+                    {insight.title}
+                    {insight.action && <ChevronRight className="h-4 w-4 text-slate-400" />}
+                </h3>
                 <p className="text-sm text-slate-600 leading-relaxed">{insight.description}</p>
               </div>
             </div>
@@ -1156,6 +1214,164 @@ const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({
   );
 };
 
+// --- Sub-View: Orders Center ---
+interface OrdersViewProps {
+  products: Product[];
+  cart: Product[]; // Assuming cart holds Product items
+  navigateTo: (view: string) => void;
+  orders: Order[];
+  onSubmitOrder: (total: number, summary: string) => void;
+  onTrackOrder: (order: Order) => void;
+}
+
+const OrdersView: React.FC<OrdersViewProps> = ({ products, cart, navigateTo, orders, onSubmitOrder, onTrackOrder }) => {
+  const hasCartItems = cart.length > 0;
+  const displayItems = hasCartItems ? cart : products.filter(p => (p.aiSuggestion || 0) > 0);
+  
+  const draftTotalValue = displayItems.reduce((sum, p) => {
+     const qty = hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0);
+     return sum + (p.price * qty);
+  }, 0);
+  
+  const draftTotalItems = displayItems.reduce((sum, p) => {
+     const qty = hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0);
+     return sum + qty;
+  }, 0);
+
+  const draftItemNames = displayItems.map(p => `${p.name.split(' ')[0]} x${hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0)}`).join(', ');
+
+  return (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900">订单中心 (Order Center)</h1>
+        <p className="text-slate-500">集中管理采购订单、审核 AI 建议草稿并生成正式合同。</p>
+      </div>
+
+      <div className="flex gap-6 border-b border-slate-200 mb-6">
+        <button className="pb-3 border-b-2 border-blue-700 text-blue-700 font-bold text-sm">
+          全部订单 ({orders.length + (displayItems.length > 0 ? 1 : 0)})
+        </button>
+        <button className="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-medium text-sm flex items-center gap-2">
+          待确认草稿 (Drafts)
+          {displayItems.length > 0 && <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full font-bold">1</span>}
+        </button>
+        <button className="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-medium text-sm">处理中</button>
+        <button className="pb-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-medium text-sm">已完成</button>
+      </div>
+
+      <div className="space-y-4">
+        {displayItems.length > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 to-white border border-amber-200 rounded-xl p-6 shadow-sm relative overflow-hidden group">
+            <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4 relative z-10">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-100 text-amber-600 rounded-xl mt-1 shadow-sm">
+                  <FileInput className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-bold text-slate-900">
+                        {hasCartItems ? '智能补货预采购单' : 'AI 补货建议草稿'}
+                    </h3>
+                    <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded border border-amber-200">待提交 Pending</span>
+                    <span className="text-xs text-slate-400 font-mono">ID: DRAFT-NEW</span>
+                  </div>
+                  <div className="text-sm text-slate-600 mt-2 max-w-lg leading-relaxed">
+                    {hasCartItems 
+                      ? '您已在智能补货中心确认了采购意向。请核对下方商品及金额，提交生成正式订单。'
+                      : '系统根据当前库存风险自动生成的建议清单。您尚未确认，建议尽快处理以锁定库存。'
+                    }
+                  </div>
+                </div>
+              </div>
+              <div className="text-right bg-white p-3 rounded-lg border border-amber-100 shadow-sm">
+                <div className="text-xs text-slate-500 mb-1">预计订单总额</div>
+                <div className="text-2xl font-bold text-amber-600">¥ {draftTotalValue.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-lg p-4 mb-5 relative z-10">
+              <div className="flex justify-between items-center mb-3">
+                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">商品清单 ({draftTotalItems} 单位)</div>
+                 <button onClick={() => navigateTo('replenish')} className="text-xs text-blue-600 hover:underline">修改清单</button>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {displayItems.map(p => {
+                   const qty = hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0);
+                   return (
+                    <div key={p.id} className="text-sm bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md text-slate-700 flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${p.status === 'Critical' ? 'bg-red-500' : 'bg-blue-500'}`}></span>
+                        {p.name.split(' ')[0]} 
+                        <span className="font-bold text-slate-900 bg-white px-1.5 rounded border border-slate-200 ml-1">x{qty}</span>
+                    </div>
+                   );
+                })}
+              </div>
+            </div>
+
+            <div className="flex gap-3 relative z-10 justify-end">
+               <button className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition">取消 / 暂存</button>
+               <button 
+                 onClick={() => onSubmitOrder(draftTotalValue, draftItemNames)}
+                 className="px-6 py-2.5 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 transition shadow-lg shadow-blue-200 flex items-center gap-2"
+               >
+                 <CheckSquare className="h-4 w-4" />
+                 确认并提交正式订单 (Submit)
+               </button>
+            </div>
+          </div>
+        )}
+
+        {orders.map((order) => (
+          <div key={order.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl border border-slate-100 ${
+                    order.status === '处理中' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
+                }`}>
+                  {order.status === '处理中' ? <Loader className="h-6 w-6 animate-spin" /> : <FileText className="h-6 w-6" />}
+                </div>
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-base font-bold text-slate-900">常规采购订单 (PO)</h3>
+                    <span className={`text-xs px-2 py-0.5 rounded font-bold ${
+                      order.status === '运输中' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 
+                      order.status === '处理中' ? 'bg-blue-50 text-blue-700 border border-blue-100' : 
+                      order.status === '已签收' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1 font-mono">
+                    ID: {order.id} <span className="mx-1">•</span> {order.date}
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-slate-900">¥ {order.amount.toLocaleString()}</div>
+                <div className="flex items-center justify-end gap-2 mt-2">
+                    <button 
+                      onClick={() => onTrackOrder(order)}
+                      className="text-xs bg-slate-100 hover:bg-blue-50 hover:text-blue-700 px-2 py-1 rounded transition flex items-center gap-1 font-medium"
+                    >
+                        <MapPin className="w-3 h-3" /> 追踪物流
+                    </button>
+                    <button className="text-xs text-slate-500 font-medium hover:underline">详情</button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between items-center">
+               <div className="text-sm text-slate-600 truncate max-w-lg">
+                 <span className="font-bold text-slate-700 mr-2">包含:</span> {order.items}
+               </div>
+               <button className="text-sm text-slate-500 hover:text-blue-700 font-medium">再次购买</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // --- Main App Shell ---
 
 const App: React.FC = () => {
@@ -1168,6 +1384,8 @@ const App: React.FC = () => {
 
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null); 
+  // New State for Regional Trend Modal
+  const [showTrendModal, setShowTrendModal] = useState(false);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -1293,7 +1511,6 @@ const App: React.FC = () => {
           
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 mt-6">核心业务 (Core)</div>
           <NavItem id="replenish" label="智能补货 (AI)" icon={Activity} />
-          {/* Inventory Health removed */}
           <NavItem id="orders" label="订单中心" icon={Truck} />
           <NavItem id="finance" label="财务与返利" icon={Wallet} />
           
@@ -1382,7 +1599,7 @@ const App: React.FC = () => {
 
         {/* Dynamic Content */}
         <div className="p-8 max-w-7xl mx-auto w-full">
-          {currentView === 'home' && <HomeView navigateTo={setCurrentView} />}
+          {currentView === 'home' && <HomeView navigateTo={setCurrentView} openTrendModal={() => setShowTrendModal(true)} />}
 
           {currentView === 'replenish' && (
             <SmartReplenishView 
@@ -1395,6 +1612,7 @@ const App: React.FC = () => {
               products={products}
               navigateTo={setCurrentView}
               toggleStockModal={() => setIsStockModalOpen(true)}
+              openTrendModal={() => setShowTrendModal(true)}
             />
           )}
 
@@ -1427,6 +1645,9 @@ const App: React.FC = () => {
 
       {/* --- Modals (Global) --- */}
       
+      {/* Regional Trend Modal */}
+      <RegionalTrendModal isOpen={showTrendModal} onClose={() => setShowTrendModal(false)} />
+
       {/* 3. Logistics Tracking Modal (NEW) */}
       {trackingOrder && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
