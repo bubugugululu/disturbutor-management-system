@@ -4,6 +4,7 @@ import {
   Bell, 
   TrendingUp, 
   Package, 
+  AlertCircle, // Fixed: Added missing import
   ChevronRight, 
   BarChart2, 
   CheckCircle,
@@ -140,6 +141,7 @@ interface Message {
   text?: string;
   options?: { label: string; value: string; action: string }[];
   marketingContent?: string;
+  isMarketingSelector?: boolean; // Fixed: Added missing property definition
 }
 
 interface RegionData {
@@ -574,21 +576,6 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
     }, 1000);
   };
   
-  // Marketing Select Logic (kept for backward compatibility if user triggers via text)
-  const handleMarketingSelect = (type: string) => {
-    const template = MARKETING_TEMPLATES[type];
-    setMessages(prev => [...prev, { type: 'user', text: `选择：${template.title}` }]);
-    setIsTyping(true);
-    setTimeout(() => {
-       setMessages(prev => [...prev, { 
-         type: 'bot', 
-         text: `已为您生成 ${template.title}：`,
-         marketingContent: template.content
-       }]);
-       setIsTyping(false);
-    }, 1200);
-  };
-
 
   if (!isOpen) return (
     <button 
@@ -624,39 +611,6 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
                 : 'bg-white text-slate-700 border border-slate-200 rounded-bl-none'
             }`}>
               {msg.text && <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>}
-              
-              {/* Marketing Selector UI */}
-              {msg.isMarketingSelector && (
-                <div className="mt-3 grid grid-cols-1 gap-2">
-                  <button onClick={() => handleMarketingSelect('wechat')} className="flex items-center gap-2 p-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition text-left">
-                    <div className="bg-green-500 text-white p-1 rounded"><MessageSquare className="h-3 w-3" /></div>
-                    <span className="text-xs font-bold text-blue-800">朋友圈文案</span>
-                  </button>
-                  <button onClick={() => handleMarketingSelect('poster')} className="flex items-center gap-2 p-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition text-left">
-                    <div className="bg-purple-500 text-white p-1 rounded"><ImageIcon className="h-3 w-3" /></div>
-                    <span className="text-xs font-bold text-blue-800">专业海报设计</span>
-                  </button>
-                  <button onClick={() => handleMarketingSelect('sms')} className="flex items-center gap-2 p-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-100 transition text-left">
-                    <div className="bg-orange-500 text-white p-1 rounded"><Zap className="h-3 w-3" /></div>
-                    <span className="text-xs font-bold text-blue-800">促销短信</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Generated Content UI */}
-              {msg.marketingContent && (
-                <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 relative group">
-                   <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                     <Sparkles className="h-3 w-3 text-amber-500" /> AI 生成内容 Preview
-                   </div>
-                   <div className="text-slate-800 font-medium whitespace-pre-wrap bg-white p-2 rounded border border-slate-100 text-xs">
-                     {msg.marketingContent}
-                   </div>
-                   <button className="mt-2 w-full flex items-center justify-center gap-1 bg-white border border-slate-300 text-slate-600 text-xs py-1.5 rounded hover:bg-slate-100 transition">
-                     <Copy className="h-3 w-3" /> 复制内容
-                   </button>
-                </div>
-              )}
             </div>
 
             {msg.options && (
@@ -794,10 +748,9 @@ const RegionalTrendModal: React.FC<RegionalTrendModalProps> = ({ isOpen, onClose
 // --- View Component: Home ---
 interface HomeViewProps {
   navigateTo: (view: string) => void;
-  openTrendModal: () => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
+const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
   const creditPercent = (CIP_STATS.creditUsed / CIP_STATS.creditLimit) * 100;
   
   return (
@@ -873,7 +826,7 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Work Area */}
         <div className="md:col-span-2 space-y-6">
-          {/* AI Critical Alert */}
+          {/* AI Critical Alert - REMOVED on home page as requested */}
           
           {/* Recent Orders */}
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
