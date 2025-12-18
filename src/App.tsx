@@ -817,11 +817,14 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
   );
 };
 
-// --- View Component: Inventory Health ---
+// --- Sub-View: Inventory Health ---
 interface InventoryViewProps {
   toggleStockModal: () => void;
 }
 
+// NOTE: Although the user removed this view from the sidebar, 
+// I'm keeping the component definition in case they want to re-enable it or use it elsewhere.
+// It is currently only accessible via direct state manipulation or re-adding the nav item.
 const InventoryView: React.FC<InventoryViewProps> = ({ toggleStockModal }) => (
   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1076,6 +1079,7 @@ interface SmartReplenishViewProps {
   cartTotal: number;
   products: Product[];
   navigateTo: (view: string) => void;
+  toggleStockModal: () => void; // Added here
 }
 
 const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({ 
@@ -1086,7 +1090,8 @@ const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({
   inputQuantities,
   cartTotal,
   products,
-  navigateTo 
+  navigateTo,
+  toggleStockModal // Destructure
 }) => {
   const rebateProgress = Math.min((cartTotal / 100000) * 100, 100);
 
@@ -1097,6 +1102,14 @@ const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({
             <h1 className="text-2xl font-bold text-slate-900">SmartConnect 智能补货中心</h1>
             <p className="text-slate-500">AI 驱动的库存优化建议</p>
          </div>
+         <button 
+           onClick={toggleStockModal}
+           className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-slate-50 hover:text-blue-700 transition"
+         >
+           <Clipboard className="h-4 w-4" />
+           填报库存
+           <span className="bg-slate-100 text-slate-500 text-[10px] px-1.5 py-0.5 rounded ml-1">Manual Input</span>
+         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -1323,12 +1336,11 @@ const App: React.FC = () => {
 
   }, [manualStocks]); 
 
-  // CHANGED: Use string type to match input element, then parse internally
-  const handleStockUpdate = (id: string, val: string) => {
-    const parsed = parseInt(val);
+  // CHANGED: Use number type directly as that's what we pass
+  const handleStockUpdate = (id: string, val: number) => {
     setManualStocks(prev => ({
       ...prev,
-      [id]: isNaN(parsed) ? 0 : parsed
+      [id]: val
     }));
   };
 
@@ -1413,7 +1425,6 @@ const App: React.FC = () => {
           
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 mt-6">核心业务 (Core)</div>
           <NavItem id="replenish" label="智能补货 (AI)" icon={Activity} />
-          <NavItem id="inventory" label="库存健康" icon={Package} />
           <NavItem id="orders" label="订单中心" icon={Truck} />
           <NavItem id="finance" label="财务与返利" icon={Wallet} />
           
@@ -1515,17 +1526,24 @@ const App: React.FC = () => {
               cartTotal={cartTotal}
               products={products}
               navigateTo={setCurrentView}
+              toggleStockModal={() => setIsStockModalOpen(true)}
             />
           )}
           
           {currentView === 'inventory' && (
-             <InventoryView toggleStockModal={() => setIsStockModalOpen(true)} />
+            // REMOVED InventoryView since the user requested to delete it earlier, 
+            // but kept the logic. If it needs to be shown, uncomment:
+             <div className="text-center py-20 text-slate-500">
+                <p>Inventory Health Module Moved to Smart Replenish Center</p>
+                <button onClick={() => setCurrentView('replenish')} className="text-blue-600 underline mt-2">Go to Replenish Center</button>
+             </div>
           )}
 
           {currentView === 'orders' && (
              <OrdersView 
                 products={products} 
                 cart={cart} 
+                // Removed addToCart prop here
                 navigateTo={setCurrentView}
                 orders={orders}
                 onSubmitOrder={handleOrderSubmit}
@@ -1646,7 +1664,8 @@ const App: React.FC = () => {
                                      type="number"
                                      className="w-24 border border-slate-300 rounded px-2 py-1 text-right font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                      value={p.stock} // This works because p.stock is derived from manualStocks
-                                     onChange={(e) => handleStockUpdate(p.id, e.target.value)}
+                                     // CHANGED: Parse int here to pass number
+                                     onChange={(e) => handleStockUpdate(p.id, parseInt(e.target.value) || 0)}
                                    />
                                 </div>
                              </td>
