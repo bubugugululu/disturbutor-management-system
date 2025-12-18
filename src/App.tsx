@@ -128,11 +128,6 @@ interface KnowledgeBaseItem {
   isMarketingTrigger?: boolean;
 }
 
-interface MarketingTemplate {
-  title: string;
-  content: string;
-}
-
 interface Message {
   type: 'bot' | 'user';
   text?: string;
