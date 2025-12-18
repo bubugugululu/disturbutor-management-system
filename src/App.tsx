@@ -35,10 +35,11 @@ import {
   MapPin,
   PackageCheck,
   Loader,
+  MessageSquare, 
   Send,          
   Bot,           
   Sparkles,      
-  Image as ImageIcon
+  Copy
 } from 'lucide-react';
 
 // --- 1. Type Definitions ---
@@ -129,10 +130,16 @@ interface KnowledgeBaseItem {
   isMarketingTrigger?: boolean;
 }
 
+interface MarketingTemplate {
+  title: string;
+  content: string;
+}
+
 interface Message {
   type: 'bot' | 'user';
   text?: string;
   options?: { label: string; value: string; action: string }[];
+  marketingContent?: string;
 }
 
 interface RegionData {
@@ -551,6 +558,7 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
       setIsTyping(false);
     }, 1000);
   };
+  
 
   if (!isOpen) return (
     <button 
@@ -564,7 +572,6 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
 
   return (
     <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl z-50 flex flex-col border border-slate-200 animate-in slide-in-from-bottom-10 duration-300 font-sans">
-      {/* Header */}
       <div className="bg-blue-700 p-4 rounded-t-2xl flex justify-between items-center text-white">
         <div className="flex items-center gap-2">
           <div className="bg-white/20 p-1.5 rounded-lg"><Bot className="h-5 w-5" /></div>
@@ -578,7 +585,6 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
         <button onClick={toggle} className="hover:bg-blue-600 p-1 rounded transition"><X className="h-5 w-5" /></button>
       </div>
 
-      {/* Chat Body */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'}`}>
@@ -603,6 +609,20 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
                     ))}
                 </div>
             )}
+            
+            {msg.marketingContent && (
+                <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3 relative group">
+                   <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                     <Sparkles className="h-3 w-3 text-amber-500" /> AI 生成内容 Preview
+                   </div>
+                   <div className="text-slate-800 font-medium whitespace-pre-wrap bg-white p-2 rounded border border-slate-100 text-xs">
+                     {msg.marketingContent}
+                   </div>
+                   <button className="mt-2 w-full flex items-center justify-center gap-1 bg-white border border-slate-300 text-slate-600 text-xs py-1.5 rounded hover:bg-slate-100 transition">
+                     <Copy className="h-3 w-3" /> 复制内容
+                   </button>
+                </div>
+              )}
           </div>
         ))}
         {isTyping && (
@@ -728,14 +748,9 @@ interface HomeViewProps {
   openTrendModal: () => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
+const HomeView: React.FC<HomeViewProps> = ({ navigateTo }) => {
   const creditPercent = (CIP_STATS.creditUsed / CIP_STATS.creditLimit) * 100;
   
-  const displayInsights = INSIGHTS.map(insight => ({
-     ...insight,
-     action: insight.actionKey === 'trend_modal' ? openTrendModal : undefined
-  }));
-
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
       
@@ -805,9 +820,6 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
           </button>
         </div>
       </div>
-
-      {/* Insight Cards (Updated to be Clickable) - REMOVED on home page as requested*/}
-      
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Work Area */}
@@ -1420,7 +1432,6 @@ const App: React.FC = () => {
           
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 mt-6">核心业务 (Core)</div>
           <NavItem id="replenish" label="智能补货 (AI)" icon={Activity} />
-          {/* Inventory Health removed */}
           <NavItem id="orders" label="订单中心" icon={Truck} />
           <NavItem id="finance" label="财务与返利" icon={Wallet} />
           
