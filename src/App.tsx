@@ -35,7 +35,9 @@ import {
   Loader,
   Send,          
   Bot,           
-  Sparkles
+  Sparkles,
+  ArrowRight,    // Fixed: Added missing import
+  AlertCircle    // Fixed: Added missing import
 } from 'lucide-react';
 
 // --- 1. Type Definitions ---
@@ -124,6 +126,11 @@ interface KnowledgeBaseItem {
   answer: string;
   followUp?: string;
   isMarketingTrigger?: boolean;
+}
+
+interface MarketingTemplate {
+  title: string;
+  content: string;
 }
 
 interface Message {
@@ -829,34 +836,6 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
         {/* Main Work Area */}
         <div className="md:col-span-2 space-y-6">
           {/* AI Critical Alert */}
-          <div className="bg-white border-l-4 border-l-red-500 border-t border-r border-b border-slate-200 rounded-r-xl p-6 shadow-sm relative overflow-hidden">
-             <Activity className="absolute -right-4 -bottom-4 h-32 w-32 text-red-50 opacity-50 pointer-events-none" />
-             <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className="flex items-center gap-2">
-                   <div className="p-2 bg-red-100 rounded-lg text-red-600"><Activity className="h-5 w-5" /></div>
-                   <div>
-                     <h3 className="text-lg font-bold text-slate-900">SmartConnect 智能补货建议</h3>
-                     <div className="text-xs text-slate-400">AI Module v4.2</div>
-                   </div>
-                </div>
-                <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded animate-pulse">紧急 Action Required</span>
-             </div>
-             <p className="text-slate-600 mb-4 text-sm relative z-10">
-               监测到四川盆地流感爆发趋势，您的 <span className="font-bold text-slate-900">达菲 (Tamiflu)</span> 库存预计在 6 天内耗尽。建议立即补货以锁定 Q4 返利。
-             </p>
-             <div className="flex gap-3 relative z-10">
-               <button 
-                 onClick={() => navigateTo('replenish')}
-                 className="px-4 py-2 bg-blue-700 text-white font-bold rounded-md text-sm shadow-md hover:bg-blue-800 transition flex items-center gap-2"
-               >
-                 查看建议清单 <ChevronRight className="h-4 w-4" />
-               </button>
-               <button className="px-4 py-2 bg-white border border-slate-300 text-slate-600 font-medium rounded-md text-sm hover:bg-slate-50 transition">
-                 暂不处理
-               </button>
-             </div>
-          </div>
-
           {/* Recent Orders */}
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -1587,7 +1566,7 @@ const App: React.FC = () => {
                   <Package className="h-10 w-10 text-slate-300" />}
                </div>
                <h2 className="text-xl font-bold text-slate-600">模块演示中未包含</h2>
-               <p className="mt-2 text-sm">点击左侧 <span className="text-blue-600 font-bold">智能补货</span> 查看 AI 核心功能</p>
+               <p className="mt-2 text-sm">点击左侧 <span className="text-blue-600 font-bold">智能补货</span> 或 <span className="text-blue-600 font-bold">库存健康</span> 查看 AI 核心功能</p>
             </div>
           )}
         </div>
