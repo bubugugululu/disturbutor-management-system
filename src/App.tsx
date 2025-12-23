@@ -145,8 +145,6 @@ interface RegionTrendData {
   [drugName: string]: TrendDataPoint;
 }
 
-// Fixed: Added missing Props interfaces to prevent TS2304
-
 interface CoPilotProps {
   isOpen: boolean;
   toggle: () => void;
@@ -530,6 +528,8 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // Fixed: Added missing selectedProduct state
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -666,6 +666,7 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
 const RegionalTrendModal: React.FC<RegionalTrendModalProps> = ({ isOpen, onClose }) => {
   const [selectedRegion, setSelectedRegion] = useState('Sichuan');
   const [selectedDrug, setSelectedDrug] = useState('达菲');
+  // Fixed: Corrected the data access from undefined REGIONAL_TRENDS to MULTI_DIMENSIONAL_TRENDS
   const regionData = MULTI_DIMENSIONAL_TRENDS[selectedRegion][selectedDrug];
 
   if (!isOpen) return null;
@@ -1158,7 +1159,7 @@ const App: React.FC = () => {
         items: itemsSummary,
         type: 'ai-generated',
         logistics: [ 
-            { time: '刚刚', status: '订单已提交', detail: '系统自动审核通过', done: true },
+            { time: '刚刚', status: '订单已提交', detail: '系统自动审核通过理论', done: true },
             { time: '处理中', status: '仓库接单中', detail: '等待 RDC 仓库确认', done: false },
         ]
     };
