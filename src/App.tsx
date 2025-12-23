@@ -36,8 +36,9 @@ import {
   Send,          
   Bot,           
   Sparkles,
-  ArrowRight,    // Fixed: Added missing import
-  AlertCircle    // Fixed: Added missing import
+  ArrowRight,    
+  AlertCircle,
+  FileCheck      // Added for Qualification Modal
 } from 'lucide-react';
 
 // --- 1. Type Definitions ---
@@ -134,11 +135,15 @@ interface Message {
   options?: { label: string; value: string; action: string }[];
 }
 
-interface RegionData {
-  name: string;
+// Updated Data Structure for multi-dimensional filtering
+interface TrendDataPoint {
   trend: number[];
   prediction: string;
   riskLevel: 'High' | 'Medium' | 'Low';
+}
+
+interface RegionTrendData {
+  [drugName: string]: TrendDataPoint;
 }
 
 // --- 2. Mock Data ---
@@ -282,24 +287,58 @@ const RAW_PRODUCTS: Product[] = [
   }
 ];
 
-const REGIONAL_TRENDS: Record<string, RegionData> = {
+// Complex mock data for multi-dimensional filtering
+const MULTI_DIMENSIONAL_TRENDS: Record<string, RegionTrendData> = {
   'Sichuan': {
-    name: '四川 (Sichuan)',
-    trend: [12, 15, 18, 25, 30, 45, 60, 85, 95, 90, 80, 70, 60, 50, 45],
-    prediction: '预计未来 2 周内流感活动达到峰值，达菲需求将激增 200%。',
-    riskLevel: 'High'
+    '达菲': {
+      trend: [12, 15, 18, 25, 30, 45, 60, 85, 95, 90, 80, 70, 60, 50, 45],
+      prediction: '四川盆地流感爆发，达菲需求预计激增 200%。',
+      riskLevel: 'High'
+    },
+    '罗氏芬': {
+      trend: [20, 20, 22, 21, 23, 22, 24, 25, 26, 25, 24, 23, 22, 21, 20],
+      prediction: '抗生素需求随流感有轻微上升，整体平稳。',
+      riskLevel: 'Medium'
+    },
+    '安维汀': {
+      trend: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+      prediction: '肿瘤药物需求稳定，不受季节影响。',
+      riskLevel: 'Low'
+    }
   },
   'Beijing': {
-    name: '北京 (Beijing)',
-    trend: [10, 11, 10, 12, 13, 15, 14, 16, 18, 17, 16, 15, 14, 13, 12],
-    prediction: '流感活动处于低水平，需求平稳。',
-    riskLevel: 'Low'
+    '达菲': {
+      trend: [10, 11, 10, 12, 13, 15, 14, 16, 18, 17, 16, 15, 14, 13, 12],
+      prediction: '北京地区流感活动处于低水平，建议常规备货。',
+      riskLevel: 'Low'
+    },
+    '罗氏芬': {
+      trend: [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+      prediction: '需求非常稳定。',
+      riskLevel: 'Low'
+    },
+    '安维汀': {
+      trend: [8, 8, 8, 9, 8, 8, 8, 8, 8, 9, 8, 8, 8, 8, 8],
+      prediction: '重点医院需求稳定。',
+      riskLevel: 'Low'
+    }
   },
   'Guangdong': {
-    name: '广东 (Guangdong)',
-    trend: [20, 22, 25, 28, 30, 35, 38, 40, 42, 45, 48, 50, 52, 55, 58],
-    prediction: '流感活动呈缓慢上升趋势，建议保持常规库存并适当增加缓冲。',
-    riskLevel: 'Medium'
+    '达菲': {
+      trend: [20, 22, 25, 28, 30, 35, 38, 40, 42, 45, 48, 50, 52, 55, 58],
+      prediction: '南方流感季开启，需求呈爬坡趋势，建议增加库存。',
+      riskLevel: 'Medium'
+    },
+    '罗氏芬': {
+      trend: [30, 32, 31, 33, 35, 34, 36, 38, 37, 36, 35, 34, 33, 32, 31],
+      prediction: '呼吸道感染增加带动抗生素需求。',
+      riskLevel: 'Medium'
+    },
+    '安维汀': {
+      trend: [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
+      prediction: 'DTP 药房需求稳定。',
+      riskLevel: 'Low'
+    }
   }
 };
 
@@ -321,9 +360,17 @@ const KNOWLEDGE_BASE_DATA: Record<string, { detail: string, gsp: string }> = {
 const KNOWLEDGE_BASE: KnowledgeBaseItem[] = [
   {
     keywords: ['返利', '政策', '折扣', '优惠', 'rebate', 'q4', 'Q4'],
-    answer: "您目前的 Q4 返利达成情况如下：\n\n**二级返利（额外 3% 折扣）：仅差 450 单位。**\n\n建议您结合智能补货清单进行凑单，以锁定此优惠。",
-    followUp: "需要为您生成详细的返利测算表吗？"
+    answer: "您目前的 Q4 折扣达成情况如下：\n\n**二级折扣（额外 3% 折扣）：仅差 450 单位。**\n\n建议您结合智能补货清单进行凑单，以锁定此优惠。",
+    followUp: "需要为您生成详细的折扣测算表吗？"
   }
+];
+
+const QUALIFICATION_DOCS = [
+  { id: 1, name: "营业执照 (Business License)", date: "2023-01-01", type: "PDF" },
+  { id: 2, name: "药品经营许可证 (Drug Trading License)", date: "2023-05-12", type: "PDF" },
+  { id: 3, name: "GSP 认证证书", date: "2023-06-20", type: "PDF" },
+  { id: 4, name: "法人授权委托书", date: "2024-01-01", type: "PDF" },
+  { id: 5, name: "罗氏制药经销授权书 (2024版)", date: "2024-01-01", type: "PDF", important: true },
 ];
 
 // --- 3. Helper Components ---
@@ -429,7 +476,7 @@ const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({ product, st
             <div className="flex justify-between items-center text-blue-600 bg-blue-50 p-1.5 rounded -mx-1.5">
               <span className="flex items-center gap-1 font-medium">
                 <Zap className="h-3 w-3 fill-current" /> 
-                战略缓冲 (流感+返利)
+                战略缓冲 (流感+折扣)
               </span>
               <span className="font-mono font-bold">+{strategicBuffer} 单位</span>
             </div>
@@ -533,7 +580,7 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
     setIsTyping(true);
 
     setTimeout(() => {
-      let response = "抱歉，我暂时无法回答这个问题。建议使用上方按钮选择产品进行查询，或询问‘返利’。";
+      let response = "抱歉，我暂时无法回答这个问题。建议使用上方按钮选择产品进行查询，或询问‘折扣’。";
 
       // Search Knowledge Base
       const kbMatch = KNOWLEDGE_BASE.find(item => item.keywords.some(k => userText.toLowerCase().includes(k.toLowerCase())));
@@ -642,7 +689,10 @@ interface RegionalTrendModalProps {
 
 const RegionalTrendModal: React.FC<RegionalTrendModalProps> = ({ isOpen, onClose }) => {
   const [selectedRegion, setSelectedRegion] = useState('Sichuan');
-  const regionData = REGIONAL_TRENDS[selectedRegion];
+  const [selectedDrug, setSelectedDrug] = useState('达菲');
+  
+  // Get data for selected region and drug
+  const regionData = MULTI_DIMENSIONAL_TRENDS[selectedRegion][selectedDrug];
 
   if (!isOpen) return null;
 
@@ -666,26 +716,49 @@ const RegionalTrendModal: React.FC<RegionalTrendModalProps> = ({ isOpen, onClose
           {/* Body */}
           <div className="p-6 overflow-y-auto">
              {/* Region Selector */}
-             <div className="flex gap-2 mb-6">
-                {Object.keys(REGIONAL_TRENDS).map(key => (
-                   <button
-                     key={key}
-                     onClick={() => setSelectedRegion(key)}
-                     className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
-                        selectedRegion === key 
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
-                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                     }`}
-                   >
-                      {REGIONAL_TRENDS[key].name}
-                   </button>
-                ))}
+             <div className="mb-4">
+                <div className="text-xs font-bold text-slate-400 uppercase mb-2">选择区域 (Region)</div>
+                <div className="flex gap-2">
+                    {Object.keys(REGIONAL_TRENDS).map(key => (
+                    <button
+                        key={key}
+                        onClick={() => setSelectedRegion(key)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
+                            selectedRegion === key 
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-200' 
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        {key === 'Sichuan' ? '四川' : key === 'Beijing' ? '北京' : '广东'}
+                    </button>
+                    ))}
+                </div>
+             </div>
+
+             {/* Drug Selector */}
+             <div className="mb-6">
+                <div className="text-xs font-bold text-slate-400 uppercase mb-2">选择药品 (Product)</div>
+                <div className="flex gap-2">
+                    {Object.keys(MULTI_DIMENSIONAL_TRENDS['Sichuan']).map(key => (
+                    <button
+                        key={key}
+                        onClick={() => setSelectedDrug(key)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition ${
+                            selectedDrug === key 
+                            ? 'bg-green-600 text-white shadow-md shadow-green-200' 
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        {key}
+                    </button>
+                    ))}
+                </div>
              </div>
 
              {/* Chart Section */}
              <div className="mb-6">
                 <div className="flex justify-between items-end mb-2">
-                   <h4 className="font-bold text-slate-800 text-sm">未来 30 天需求预测 (Demand Forecast)</h4>
+                   <h4 className="font-bold text-slate-800 text-sm">未来 30 天需求预测 - {selectedDrug} ({selectedRegion})</h4>
                    <div className="flex items-center gap-2 text-xs">
                       <span className={`px-2 py-0.5 rounded font-bold ${
                          regionData.riskLevel === 'High' ? 'bg-red-100 text-red-600' :
@@ -718,14 +791,73 @@ const RegionalTrendModal: React.FC<RegionalTrendModalProps> = ({ isOpen, onClose
   );
 };
 
+// --- First Qualification Modal ---
+interface FirstQualificationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const FirstQualificationModal: React.FC<FirstQualificationModalProps> = ({ isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4 animate-in fade-in duration-200">
+       <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[80vh]">
+          {/* Header */}
+          <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+             <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                   <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                   <h3 className="text-lg font-bold text-slate-900">首营资料下载</h3>
+                   <p className="text-xs text-slate-500">First Qualification Documents</p>
+                </div>
+             </div>
+             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition"><X className="h-5 w-5 text-slate-400" /></button>
+          </div>
+
+          {/* Body */}
+          <div className="p-0 overflow-y-auto">
+             <div className="divide-y divide-slate-100">
+                {QUALIFICATION_DOCS.map((doc) => (
+                   <div key={doc.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition group cursor-pointer">
+                      <div className="flex items-center gap-3">
+                         <div className="bg-slate-100 p-2 rounded text-slate-500">
+                            <FileCheck className="h-5 w-5" />
+                         </div>
+                         <div>
+                            <div className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                               {doc.name}
+                               {doc.important && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 rounded">Required</span>}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-0.5">Updated: {doc.date} • {doc.type}</div>
+                         </div>
+                      </div>
+                      <button className="text-blue-600 hover:bg-blue-50 p-2 rounded-full transition">
+                         <Download className="h-4 w-4" />
+                      </button>
+                   </div>
+                ))}
+             </div>
+          </div>
+          
+          <div className="p-4 border-t border-slate-100 bg-slate-50 text-center">
+             <button className="text-sm text-blue-700 font-bold hover:underline">下载全部资料包 (Zip)</button>
+          </div>
+       </div>
+    </div>
+  );
+};
 
 // --- View Component: Home ---
 interface HomeViewProps {
   navigateTo: (view: string) => void;
   openTrendModal: () => void;
+  openQualificationModal: () => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
+const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal, openQualificationModal }) => {
   const creditPercent = (CIP_STATS.creditUsed / CIP_STATS.creditLimit) * 100;
   
   const displayInsights = INSIGHTS.map(insight => ({
@@ -769,7 +901,7 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
           </div>
           <div className="mt-4 pt-4 border-t border-slate-100">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">Q4 返利池</span>
+              <span className="text-sm text-slate-600">Q4 折扣池</span>
               <span className="text-sm font-bold text-green-600">+¥ {CIP_STATS.rebatePool.toLocaleString()}</span>
             </div>
             <button className="text-xs text-blue-700 mt-2 font-medium hover:underline flex items-center gap-1">
@@ -830,7 +962,6 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Work Area */}
         <div className="md:col-span-2 space-y-6">
-          {/* AI Critical Alert */}
           {/* Recent Orders */}
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
@@ -886,7 +1017,10 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal }) => {
                     <FileText className="h-5 w-5 mb-2 text-slate-400 group-hover:text-blue-700" />
                     <span className="text-xs font-medium">我的账单</span>
                  </button>
-                 <button className="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition group">
+                 <button 
+                    onClick={openQualificationModal}
+                    className="flex flex-col items-center justify-center p-3 bg-slate-50 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition group"
+                 >
                     <ShieldCheck className="h-5 w-5 mb-2 text-slate-400 group-hover:text-blue-700" />
                     <span className="text-xs font-medium">首营资质</span>
                  </button>
@@ -1148,7 +1282,7 @@ const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({
           </div>
           <div className="w-1/3 hidden md:block">
             <div className="flex justify-between text-xs mb-1">
-              <span className="font-semibold text-blue-800">Q4 二级返利目标</span>
+              <span className="font-semibold text-blue-800">Q4 二级折扣目标</span>
               <span className="text-slate-500">{Math.round(rebateProgress)}%</span>
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2">
@@ -1312,6 +1446,7 @@ const App: React.FC = () => {
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null); 
   // New State for Regional Trend Modal
   const [showTrendModal, setShowTrendModal] = useState(false);
+  const [showQualificationModal, setShowQualificationModal] = useState(false);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -1437,9 +1572,8 @@ const App: React.FC = () => {
           
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 mt-6">核心业务 (Core)</div>
           <NavItem id="replenish" label="智能补货 (AI)" icon={Activity} />
-          {/* Inventory Health removed */}
           <NavItem id="orders" label="订单中心" icon={Truck} />
-          <NavItem id="finance" label="财务与返利" icon={Wallet} />
+          <NavItem id="finance" label="财务与折扣" icon={Wallet} />
           
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-4 mb-2 mt-6">支持 (Support)</div>
           <NavItem id="market" label="市场洞察" icon={PieChart} />
@@ -1526,7 +1660,7 @@ const App: React.FC = () => {
 
         {/* Dynamic Content */}
         <div className="p-8 max-w-7xl mx-auto w-full">
-          {currentView === 'home' && <HomeView navigateTo={setCurrentView} openTrendModal={() => setShowTrendModal(true)} />}
+          {currentView === 'home' && <HomeView navigateTo={setCurrentView} openTrendModal={() => setShowTrendModal(true)} openQualificationModal={() => setShowQualificationModal(true)} />}
 
           {currentView === 'replenish' && (
             <SmartReplenishView 
@@ -1574,6 +1708,9 @@ const App: React.FC = () => {
       
       {/* Regional Trend Modal */}
       <RegionalTrendModal isOpen={showTrendModal} onClose={() => setShowTrendModal(false)} />
+      
+      {/* First Qualification Modal */}
+      <FirstQualificationModal isOpen={showQualificationModal} onClose={() => setShowQualificationModal(false)} />
 
       {/* 3. Logistics Tracking Modal (NEW) */}
       {trackingOrder && (
