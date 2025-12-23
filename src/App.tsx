@@ -35,7 +35,6 @@ import {
   MapPin,
   PackageCheck,
   Loader,
-  MessageSquare, 
   Send,          
   Bot,           
   Sparkles,
@@ -130,10 +129,22 @@ interface KnowledgeBaseItem {
   isMarketingTrigger?: boolean;
 }
 
+interface MarketingTemplate {
+  title: string;
+  content: string;
+}
+
 interface Message {
   type: 'bot' | 'user';
   text?: string;
   options?: { label: string; value: string; action: string }[];
+}
+
+interface RegionData {
+  name: string;
+  trend: number[];
+  prediction: string;
+  riskLevel: 'High' | 'Medium' | 'Low';
 }
 
 interface RegionTrendData {
