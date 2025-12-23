@@ -145,6 +145,51 @@ interface RegionTrendData {
   [drugName: string]: TrendDataPoint;
 }
 
+// Fixed: Added missing Props interfaces to prevent TS2304
+
+interface CoPilotProps {
+  isOpen: boolean;
+  toggle: () => void;
+}
+
+interface RegionalTrendModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface FirstQualificationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface HomeViewProps {
+  navigateTo: (view: string) => void;
+  openTrendModal: () => void;
+  openQualificationModal: () => void;
+}
+
+interface OrdersViewProps {
+  products: Product[];
+  cart: Product[];
+  navigateTo: (view: string) => void;
+  orders: Order[];
+  onSubmitOrder: (total: number, summary: string) => void;
+  onTrackOrder: (order: Order) => void;
+}
+
+interface SmartReplenishViewProps {
+  cart: Product[];
+  addToCart: (product: Product, qty: number) => void;
+  setShowAnalysis: (product: Product | null) => void;
+  openAdjustmentModal: (product: Product) => void;
+  inputQuantities: Record<string, number>;
+  cartTotal: number;
+  products: Product[];
+  navigateTo: (view: string) => void;
+  toggleStockModal: () => void;
+  openTrendModal: () => void;
+}
+
 // --- 2. 模拟数据 ---
 
 const USER_PROFILE: UserProfile = {
@@ -485,7 +530,6 @@ const CoPilot: React.FC<CoPilotProps> = ({ isOpen, toggle }) => {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -870,10 +914,10 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal, openQua
 
 const OrdersView: React.FC<OrdersViewProps> = ({ products, cart, navigateTo, orders, onSubmitOrder, onTrackOrder }) => {
   const hasCartItems = cart.length > 0;
-  const displayItems = hasCartItems ? cart : products.filter(p => (p.aiSuggestion || 0) > 0);
-  const draftTotalValue = displayItems.reduce((sum, p) => sum + (p.price * (hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0))), 0);
-  const draftTotalItems = displayItems.reduce((sum, p) => sum + (hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0)), 0);
-  const draftItemNames = displayItems.map(p => `${p.name.split(' ')[0]} x${hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0)}`).join(', ');
+  const displayItems = hasCartItems ? cart : products.filter((p: Product) => (p.aiSuggestion || 0) > 0);
+  const draftTotalValue = displayItems.reduce((sum: number, p: Product) => sum + (p.price * (hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0))), 0);
+  const draftTotalItems = displayItems.reduce((sum: number, p: Product) => sum + (hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0)), 0);
+  const draftItemNames = displayItems.map((p: Product) => `${p.name.split(' ')[0]} x${hasCartItems ? (p.qty || 0) : (p.aiSuggestion || 0)}`).join(', ');
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -910,7 +954,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({ products, cart, navigateTo, ord
                  <button onClick={() => navigateTo('replenish')} className="text-xs text-blue-600 hover:underline">修改清单</button>
               </div>
               <div className="flex flex-wrap gap-3">
-                {displayItems.map(p => (
+                {displayItems.map((p: Product) => (
                     <div key={p.id} className="text-sm bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-md text-slate-700 flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${p.status === 'Critical' ? 'bg-red-500' : 'bg-blue-500'}`}></span>
                         {p.name.split(' ')[0]} 
@@ -925,7 +969,7 @@ const OrdersView: React.FC<OrdersViewProps> = ({ products, cart, navigateTo, ord
             </div>
           </div>
         )}
-        {orders.map((order) => (
+        {orders.map((order: Order) => (
           <div key={order.id} className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-4">
@@ -1002,9 +1046,9 @@ const SmartReplenishView: React.FC<SmartReplenishViewProps> = ({ cart, addToCart
               <tr><th className="px-6 py-4">产品名称</th><th className="px-6 py-4">库存状态</th><th className="px-6 py-4 text-center">AI 建议量</th><th className="px-6 py-4">推荐理由</th><th className="px-6 py-4 text-right">操作</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {products.map((product) => {
+              {products.map((product: Product) => {
                 const isCritical = product.status === 'Critical';
-                const isAdded = cart.some(item => item.id === product.id);
+                const isAdded = cart.some((item: Product) => item.id === product.id);
                 const currentQty = inputQuantities[product.id] ?? product.aiSuggestion;
                 return (
                   <tr key={product.id} className="hover:bg-slate-50/80 transition-colors">
@@ -1065,7 +1109,7 @@ const App: React.FC = () => {
   const [isCoPilotOpen, setIsCoPilotOpen] = useState(false);
 
   useEffect(() => {
-    const calculatedProducts = RAW_PRODUCTS.map(p => {
+    const calculatedProducts = RAW_PRODUCTS.map((p: Product) => {
       const currentStock = manualStocks[p.id] !== undefined ? manualStocks[p.id] : p.initialStock;
       const { realBurn, safetyDays, strategicBuffer } = p.calc;
       const newSuggestion = Math.max(0, Math.ceil(realBurn * safetyDays) - currentStock + strategicBuffer);
@@ -1079,7 +1123,7 @@ const App: React.FC = () => {
     });
     setProducts(calculatedProducts);
     const freshInputs: Record<string, number> = {};
-    calculatedProducts.forEach(p => freshInputs[p.id] = p.aiSuggestion || 0);
+    calculatedProducts.forEach((p: Product) => freshInputs[p.id] = p.aiSuggestion || 0);
     setInputQuantities(freshInputs);
   }, [manualStocks]); 
 
@@ -1211,7 +1255,7 @@ const App: React.FC = () => {
                        <tr><th className="px-5 py-3 font-medium">产品</th><th className="px-5 py-3 font-medium text-center">系统记录 (DDI)</th><th className="px-5 py-3 font-medium text-right">实际库存</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                       {products.map(p => (
+                       {products.map((p: Product) => (
                           <tr key={p.id}><td className="px-5 py-4 font-medium text-slate-900">{p.name}</td><td className="px-5 py-4 text-center text-slate-400">{p.initialStock}</td><td className="px-5 py-4 text-right"><div className="flex justify-end"><input type="number" className="w-24 border border-slate-300 rounded px-2 py-1 text-right font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none" value={p.stock} onChange={(e) => handleStockUpdate(p.id, parseInt(e.target.value) || 0)} /></div></td></tr>
                        ))}
                     </tbody>
