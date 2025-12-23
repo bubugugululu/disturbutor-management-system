@@ -129,11 +129,6 @@ interface KnowledgeBaseItem {
   isMarketingTrigger?: boolean;
 }
 
-interface MarketingTemplate {
-  title: string;
-  content: string;
-}
-
 interface Message {
   type: 'bot' | 'user';
   text?: string;
@@ -297,6 +292,27 @@ const RAW_PRODUCTS: Product[] = [
     }
   }
 ];
+
+const REGIONAL_TRENDS: Record<string, RegionData> = {
+  'Sichuan': {
+    name: '四川 (Sichuan)',
+    trend: [12, 15, 18, 25, 30, 45, 60, 85, 95, 90, 80, 70, 60, 50, 45],
+    prediction: '预计未来 2 周内流感活动达到峰值，达菲需求将激增 200%。',
+    riskLevel: 'High'
+  },
+  'Beijing': {
+    name: '北京 (Beijing)',
+    trend: [10, 11, 10, 12, 13, 15, 14, 16, 18, 17, 16, 15, 14, 13, 12],
+    prediction: '流感活动处于低水平，需求平稳。',
+    riskLevel: 'Low'
+  },
+  'Guangdong': {
+    name: '广东 (Guangdong)',
+    trend: [20, 22, 25, 28, 30, 35, 38, 40, 42, 45, 48, 50, 52, 55, 58],
+    prediction: '流感活动呈缓慢上升趋势，建议保持常规库存并适当增加缓冲。',
+    riskLevel: 'Medium'
+  }
+};
 
 const MULTI_DIMENSIONAL_TRENDS: Record<string, RegionTrendData> = {
   'Sichuan': {
