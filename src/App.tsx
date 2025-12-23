@@ -4,6 +4,7 @@ import {
   Bell, 
   TrendingUp, 
   Package, 
+  AlertCircle, 
   ChevronRight, 
   BarChart2, 
   CheckCircle,
@@ -30,15 +31,14 @@ import {
   Database,
   FileInput, 
   CheckSquare,
+  ArrowRight,
   MapPin,
   PackageCheck,
   Loader,
   Send,          
   Bot,           
   Sparkles,
-  ArrowRight,    
-  AlertCircle,
-  FileCheck      // Added for Qualification Modal
+  FileCheck
 } from 'lucide-react';
 
 // --- 1. Type Definitions ---
@@ -135,8 +135,8 @@ interface Message {
   options?: { label: string; value: string; action: string }[];
 }
 
-// Updated Data Structure for multi-dimensional filtering
-interface TrendDataPoint {
+interface RegionData {
+  name: string;
   trend: number[];
   prediction: string;
   riskLevel: 'High' | 'Medium' | 'Low';
@@ -144,6 +144,12 @@ interface TrendDataPoint {
 
 interface RegionTrendData {
   [drugName: string]: TrendDataPoint;
+}
+
+interface TrendDataPoint {
+  trend: number[];
+  prediction: string;
+  riskLevel: 'High' | 'Medium' | 'Low';
 }
 
 // --- 2. Mock Data ---
@@ -287,7 +293,6 @@ const RAW_PRODUCTS: Product[] = [
   }
 ];
 
-// Complex mock data for multi-dimensional filtering
 const MULTI_DIMENSIONAL_TRENDS: Record<string, RegionTrendData> = {
   'Sichuan': {
     '达菲': {
@@ -359,7 +364,7 @@ const KNOWLEDGE_BASE_DATA: Record<string, { detail: string, gsp: string }> = {
 
 const KNOWLEDGE_BASE: KnowledgeBaseItem[] = [
   {
-    keywords: ['返利', '政策', '折扣', '优惠', 'rebate', 'q4', 'Q4'],
+    keywords: ['折扣', '政策', '返利', '优惠', 'rebate', 'q4', 'Q4'],
     answer: "您目前的 Q4 折扣达成情况如下：\n\n**二级折扣（额外 3% 折扣）：仅差 450 单位。**\n\n建议您结合智能补货清单进行凑单，以锁定此优惠。",
     followUp: "需要为您生成详细的折扣测算表吗？"
   }
@@ -962,6 +967,35 @@ const HomeView: React.FC<HomeViewProps> = ({ navigateTo, openTrendModal, openQua
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Main Work Area */}
         <div className="md:col-span-2 space-y-6">
+          {/* AI Critical Alert */}
+          <div className="bg-white border-l-4 border-l-red-500 border-t border-r border-b border-slate-200 rounded-r-xl p-6 shadow-sm relative overflow-hidden">
+             <Activity className="absolute -right-4 -bottom-4 h-32 w-32 text-red-50 opacity-50 pointer-events-none" />
+             <div className="flex justify-between items-start mb-4 relative z-10">
+                <div className="flex items-center gap-2">
+                   <div className="p-2 bg-red-100 rounded-lg text-red-600"><Activity className="h-5 w-5" /></div>
+                   <div>
+                     <h3 className="text-lg font-bold text-slate-900">SmartConnect 智能补货建议</h3>
+                     <div className="text-xs text-slate-400">AI Module v4.2</div>
+                   </div>
+                </div>
+                <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded animate-pulse">紧急 Action Required</span>
+             </div>
+             <p className="text-slate-600 mb-4 text-sm relative z-10">
+               监测到四川盆地流感爆发趋势，您的 <span className="font-bold text-slate-900">达菲 (Tamiflu)</span> 库存预计在 6 天内耗尽。建议立即补货以锁定 Q4 折扣。
+             </p>
+             <div className="flex gap-3 relative z-10">
+               <button 
+                 onClick={() => navigateTo('replenish')}
+                 className="px-4 py-2 bg-blue-700 text-white font-bold rounded-md text-sm shadow-md hover:bg-blue-800 transition flex items-center gap-2"
+               >
+                 查看建议清单 <ChevronRight className="h-4 w-4" />
+               </button>
+               <button className="px-4 py-2 bg-white border border-slate-300 text-slate-600 font-medium rounded-md text-sm hover:bg-slate-50 transition">
+                 暂不处理
+               </button>
+             </div>
+          </div>
+
           {/* Recent Orders */}
           <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
